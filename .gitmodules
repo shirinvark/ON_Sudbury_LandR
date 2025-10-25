@@ -1,0 +1,18 @@
+[submodule "modules/Biomass_speciesData"]
+	path = modules/Biomass_speciesData
+	url = https://github.com/PredictiveEcology/Biomass_speciesData
+[submodule "modules/Biomass_borealDataPrep"]
+	path = modules/Biomass_borealDataPrep
+	url = https://github.com/PredictiveEcology/Biomass_borealDataPrep
+[submodule "modules/Biomass_speciesParameters"]
+	path = modules/Biomass_speciesParameters
+	url = https://github.com/PredictiveEcology/Biomass_speciesParameters
+[submodule "modules/Biomass_core"]
+	path = modules/Biomass_core
+	url = https://github.com/PredictiveEcology/Biomass_core
+[submodule "modules/canClimateData"]
+	path = modules/canClimateData
+	url = https://github.com/PredictiveEcology/canClimateData
+[submodule "modules/gmcsDataPrep"]
+	path = modules/gmcsDataPrep
+	url = https://github.com/ianmseddy/gmcsDataPrep
