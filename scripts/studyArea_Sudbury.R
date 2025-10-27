@@ -51,3 +51,4 @@ studyAreaLargeFun <- function() {
   message("✅ Large studyArea created.")
   return(studyAreaLarge)
 }
+

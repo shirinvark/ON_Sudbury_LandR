@@ -2,20 +2,20 @@
 # 0️⃣ Identify and verify project directory
 # =====================================================
 getwd()
-# مسیر کاری فعلی را شناسایی کن
 
-# در صورت تمایل می‌توانی مسیر را به‌صورت دستی هم مشخص کنی (اختیاری)
+# Identify current working directory
+# (You can manually set it below if needed)
 proj_dir <- "E:/MyProjects/ON_Sudbury_LandR"
 
-# نمایش مسیر برای اطمینان
+# Print the active working directory
 message("📁 Current working directory set to:\n", proj_dir)
 
-# بررسی اینکه پوشه واقعاً وجود دارد
+# Check if the directory actually exists
 if (!dir.exists(proj_dir)) {
   stop("❌ Project directory does not exist. Please check your path.")
 }
 
-# ایجاد مسیر پیش‌فرض برای زیرپوشه‌ها
+# Set working directory
 setwd(proj_dir)
 
 # =====================================================
@@ -25,17 +25,18 @@ setwd(proj_dir)
 library(fs)
 
 dirs <- c(
-  "data",          # داده‌های خام (مثل shapefileها)
-  "inputs",        # داده‌های پردازش‌شده برای مدل‌ها
-  "outputs",       # خروجی‌های شبیه‌سازی‌ها
-  "modules",       # ماژول‌های SpaDES
-  "scripts",       # Global و StudyArea اسکریپت‌ها
-  "cache",         # کش reproducible
-  "BOUNDARIES"     # مرز FMUها (مثل Sudbury)
+  "data",          # Raw data (e.g., shapefiles)
+  "inputs",        # Preprocessed data used in models
+  "outputs",       # Simulation outputs
+  "modules",       # SpaDES modules
+  "scripts",       # Global and StudyArea scripts
+  "cache",         # Reproducible cache
+  "BOUNDARIES"     # FMU boundaries (e.g., Sudbury)
 )
 
 dir_create(dirs)
 list.dirs(".", recursive = FALSE)
+
 # =====================================================
 # Step 2: Download & extract FRI Status shapefile (Ontario FMUs)
 # =====================================================
@@ -45,22 +46,21 @@ library(fs)
 library(archive)
 library(sf)
 
-
-# مسیر دانلود و استخراج
+# Define download and extraction paths
 zip_path <- file.path(proj_dir, "data", "FRI_STATUS_ON.zip")
 unzip_dir <- file.path(proj_dir, "data", "FRI_STATUS_ON")
 dir_create(unzip_dir)
 
-# لینک مستقیم shapefile FMUها
+# Direct link to FMU shapefile
 url <- "https://hub.arcgis.com/api/v3/datasets/4e3cdfdb8fe74f33af4aa51238b92538_23/downloads/data?format=shp&spatialRefId=4269&where=1%3D1"
 
-# دانلود
+# Download the shapefile
 curl_download(url, destfile = zip_path, quiet = FALSE)
 
-# باز کردن فایل زیپ
+# Extract ZIP file
 archive_extract(zip_path, dir = unzip_dir)
 
-# مسیر shapefile
+# Define shapefile path
 shp_path <- file.path(unzip_dir, "FRI_Status.shp")
 
 # =====================================================
@@ -78,7 +78,7 @@ out_path <- file.path(proj_dir, "BOUNDARIES", "Sudbury_FMU_5070.shp")
 st_write(sudbury_5070, out_path, delete_layer = TRUE)
 
 cat("\n✅ Saved Sudbury shapefile at:\n", out_path, "\n")
-# =====================================================
+
 # =====================================================
 # Step 4: Land Cover – Canada (CEC 2020 v2 – lightweight version)
 # =====================================================
@@ -91,14 +91,14 @@ library(fs)
 dirs$landcover_ca <- file.path(proj_dir, "LandCover_Canada")
 dir_create(dirs$landcover_ca)
 
-# لینک رسمی CEC (North American Land Cover 2020 v2, 30m)
+# Official CEC link (North American Land Cover 2020 v2, 30m)
 lcc_url <- "https://www.cec.org/files/atlas_layers/1_terrestrial_ecosystems/1_01_0_land_cover_2020_30m/land_cover_2020v2_30m_tif.zip"
 
-# مسیر فایل فشرده و خروجی
+# Define paths for ZIP and extracted TIFF
 zip_path <- file.path(dirs$landcover_ca, basename(lcc_url))
 tif_path <- file.path(dirs$landcover_ca, "land_cover_2020v2_30m.tif")
 
-# اگر فایل هنوز دانلود نشده، دانلود کن
+# Download if file doesn’t exist yet
 if (!file.exists(tif_path)) {
   message("⬇️ Downloading CEC Land Cover 2020v2 ...")
   curl_download(lcc_url, destfile = zip_path, quiet = FALSE)
@@ -106,13 +106,12 @@ if (!file.exists(tif_path)) {
   archive_extract(zip_path, dir = dirs$landcover_ca)
 }
 
-# اطمینان از نام درست فایل
+# Ensure TIFF file has the correct name
 if (!file.exists(tif_path)) {
   possible_tif <- list.files(dirs$landcover_ca, pattern = "tif$", full.names = TRUE)
   file.rename(possible_tif[1], tif_path)
 }
 
-# بارگذاری نقشه
 # =====================================================
 # Step 4b: Find the extracted TIFF file automatically
 # =====================================================
@@ -120,7 +119,7 @@ if (!file.exists(tif_path)) {
 library(fs)
 library(terra)
 
-# جستجو در پوشه LandCover_Canada برای هر فایل با پسوند tif
+# Search for any TIFF file in the LandCover_Canada directory
 possible_tifs <- dir(
   path = dirs$landcover_ca,
   pattern = "\\.tif$",
@@ -128,7 +127,7 @@ possible_tifs <- dir(
   full.names = TRUE
 )
 
-# انتخاب اولین فایل بزرگ‌تر از 100MB (تا فایل‌های موقت حذف شن)
+# Select the first large TIFF (>100 MB) to avoid temp files
 tif_sizes <- file.info(possible_tifs)$size
 tif_candidates <- possible_tifs[tif_sizes > 1e8]
 
@@ -139,21 +138,18 @@ if (length(tif_candidates) == 0) {
   message("✅ Found landcover file:\n", tif_path)
 }
 
-# بارگذاری و نمایش
+# Load and preview raster
 r_ca <- terra::rast(tif_path)
 terra::plot(r_ca, main = "CEC Land Cover 2020v2 (Canada)")
-
-
-
 
 # =====================================================
 # Step 5 (Optimized): Clip LandCover to Sudbury FMU
 # =====================================================
 
-# shapefile Sudbury را بخوانیم
+# Read Sudbury shapefile
 sudbury_fmu <- terra::vect(out_path)
 
-# گام 1: ابتدا shapefile را به CRS لندکاور (NAD83) تبدیل کن تا crop سریع شود
+# Step 1: Reproject Sudbury shapefile to match LandCover CRS (for faster cropping)
 if (terra::crs(sudbury_fmu) != terra::crs(r_ca)) {
   message("🔄 Reprojecting Sudbury shapefile to match LandCover CRS (for fast cropping)...")
   sudbury_fmu_nad83 <- terra::project(sudbury_fmu, terra::crs(r_ca))
@@ -161,26 +157,23 @@ if (terra::crs(sudbury_fmu) != terra::crs(r_ca)) {
   sudbury_fmu_nad83 <- sudbury_fmu
 }
 
-# گام 2: فقط محدوده‌ی Sudbury را از نقشه اصلی ببُر
+# Step 2: Crop to the Sudbury FMU extent
 message("✂️ Cropping LandCover to Sudbury extent (fast method)...")
 r_sudbury_temp <- terra::crop(r_ca, sudbury_fmu_nad83)
 
-# گام 3: حالا آن تکه کوچک را به CRS Sudbury (EPSG:5070) برگردان
+# Step 3: Reproject the cropped raster to EPSG:5070
 message("🔄 Reprojecting cropped raster to EPSG:5070 ...")
 r_sudbury <- terra::project(r_sudbury_temp, terra::crs(sudbury_fmu))
 
-# گام 4: ماسک نهایی فقط درون مرز Sudbury
+# Step 4: Apply mask for the Sudbury FMU boundary
 message("🎯 Applying mask for Sudbury FMU boundary ...")
 r_sudbury <- terra::mask(r_sudbury, sudbury_fmu)
 
-# گام 5: ذخیره فایل خروجی
+# Step 5: Save clipped output
 lcc_clip_path <- file.path(dirs$landcover_ca, "LCC2020v2_Sudbury_30m.tif")
 terra::writeRaster(r_sudbury, lcc_clip_path, overwrite = TRUE)
 
 message("✅ Saved clipped LandCover at:\n", lcc_clip_path)
 
-# نمایش نقشه خروجی
+# Display final map
 terra::plot(r_sudbury, main = "Sudbury FMU – CEC Land Cover 2020v2 (30m)")
-
-
-

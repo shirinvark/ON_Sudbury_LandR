@@ -14,6 +14,23 @@ getOrUpdatePkg <- function(p, minVer, repo) {
 getOrUpdatePkg("SpaDES.project", "0.0.8.9040")
 
 library(SpaDES.project)
+# ---- 🚫 Force-disable SCANFI inside LandR (even after reload by SpaDES) ----
+setHook(packageEvent("LandR", "onLoad"), function(...) {
+  try({
+    unlockBinding("prepSpeciesLayers_SCANFI", asNamespace("LandR"))
+    assign("prepSpeciesLayers_SCANFI", function(...) {
+      message("⚠️ SCANFI fully disabled — returning dummy raster.")
+      return(terra::rast(terra::ext(0, 1, 0, 1), ncol = 1, nrow = 1, vals = NA))
+    }, envir = asNamespace("LandR"))
+    lockBinding("prepSpeciesLayers_SCANFI", asNamespace("LandR"))
+  }, silent = TRUE)
+})
+
+# ---- 🧩 Optional LandR options (disable SCANFI temporarily) ----
+options(
+  LandR.useSCANFI = FALSE,         
+  LandR.tryLoadingSCANFI = FALSE   
+)
 
 # ---- 1️⃣ Setup the project ----
 out <- SpaDES.project::setupProject(
@@ -34,7 +51,7 @@ out <- SpaDES.project::setupProject(
     "PredictiveEcology/Biomass_speciesParameters@manual",
     "PredictiveEcology/Biomass_core@development",
     "PredictiveEcology/canClimateData@development"
-    # حذف ماژول gmcsDataPrep تا از gpBoost_PSP استفاده نکند
+    #  gmcsDataPrep  
   ),
   options = list(
     spades.allowInitDuringSimInit = TRUE,
@@ -50,12 +67,18 @@ out <- SpaDES.project::setupProject(
   params = list(
     .globals = list(
       .studyAreaName = "Sudbury_FMU",
-      dataYear = 2010,  # داده‌های borealDataPrep فقط برای 2000، 2010، 2020 معتبرند
-      sppEquivCol = "LandR",
-      .Plots = "png"
+      dataYear = 2010,
+      sppEquivCol = 'LandR',
+      .Plots = "png",
+      LandR.useSCANFI = FALSE,        
+      LandR.tryLoadingSCANFI = FALSE  
+    ),
+    Biomass_speciesData = list(
+      useSCANFI = FALSE,              
+      tryLoadingSCANFI = FALSE
     ),
     Biomass_borealDataPrep = list(overrideAgeInFires = FALSE),
-    Biomass_speciesParameters = list(PSPdataTypes = c("NFI", "ON", "NB", "QC"))
+    Biomass_speciesParameters = list(PSPdataTypes = c("NFI","ON","NB","QC"))
   ),
   
   # ---- 2️⃣ Custom spatial inputs ----
